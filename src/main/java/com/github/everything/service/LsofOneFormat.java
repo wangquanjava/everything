@@ -1,5 +1,8 @@
 package com.github.everything.service;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
@@ -11,10 +14,18 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.ListUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.HttpEntity;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.util.EntityUtils;
 
 import java.io.File;
 import java.io.IOException;
 import java.math.RoundingMode;
+import java.net.URI;
 import java.nio.charset.Charset;
 import java.text.DecimalFormat;
 import java.util.Collections;
@@ -32,6 +43,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class LsofOneFormat {
     private List<Integer> serverPortList = Lists.newArrayList(8011);
+    private Map<String, String> appkeyByHostKey = Maps.newHashMap();
 
     public static void main(String[] args) {
         // 共有多少行、input多少行、output多少行
@@ -53,8 +65,6 @@ public class LsofOneFormat {
         List<LsofLineGroupBy> clientGroupByAppKey = lsofOneFormat.groupByAppKey(lsofOneFormat.getClientList(diffCreate));
         log.info("重新创建连接中client连接占比分析:\n{}", lsofOneFormat.printDiffSummaryByAppKey(clientGroupByAppKey, lsofOneFormat.getClientList(data2)));
 
-        List<LsofLineGroupBy> lsofLineGroupBIES = lsofOneFormat.groupByRemoteHost(data1);
-        log.info("全部连接中按照remoteHost占比分析:\n{}", lsofOneFormat.printDiffSummaryByRemoteHost(lsofLineGroupBIES, data1));
     }
 
     public String printSummary(List<LsofLine> data) {
@@ -67,7 +77,7 @@ public class LsofOneFormat {
         DecimalFormat decimalFormat = new DecimalFormat("0.##");
         decimalFormat.setRoundingMode(RoundingMode.HALF_UP);
         StringBuilder stringBuilder = new StringBuilder();
-        String format = "%30s : %11s : %s\n";
+        String format = "%60s : %11s : %s\n";
         stringBuilder.append(String.format(format, "appkey", "createCount", "countCount/all"));
         for (LsofLineGroupBy datum : data) {
             stringBuilder.append(String.format(format, datum.getKey(), datum.getCount(), decimalFormat.format(datum.getCount() * 1.0 / nowMap.get(datum.getKey()).getCount())));
@@ -158,13 +168,48 @@ public class LsofOneFormat {
     }
 
 
+    private String getAppekeyFromOps(String host) {
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            URI uri = new URIBuilder(String.format("http://ops.vip.sankuai.com/api/v0.2/hosts/%s/appkeys", host)).build();
+
+            HttpGet httpGet = new HttpGet(uri);
+            httpGet.setHeader("Cookie", "_lxsdk_cuid=170be73212cc8-0731fedd72247-39687407-13c680-170be73212cc8; _lxsdk=170be73212cc8-0731fedd72247-39687407-13c680-170be73212cc8; s_u_745896=wPzGrzS+8NIHAQMhaT8k6w==; al=etbrsabkzqwplazomicpeoybunodsbqz; u=7113786; uu=bf70caf0-b7fa-11ec-bdc2-1d9e2782e776; cid=1; s_m_id_3299326472=AwMAAAA5AgAAAAIAAAE9AAAALPVKSfqvDQPyb+RkNGaBXjnu3be7dnPmweuSYJAvu9s467ya2BSXoXF2+ZZeAAAAIyB6tbbO9Z0Rxc4NVeikjWfUkHFIJONN9h3mJpd+QTMhZAhA; csrftoken=Df9yzbAwHt1Pm4uxI2Gt95H0bkyRRsZs; sessionid=gjw22iae60b07374l9kud9tg4lxe12qx; ssoid=eAGFzjtLw1AYgGEOSCmdJJNjxjYQ_M4t5ztOpmnA0csguEjOJaP-AQebwVIQBDedFAIKgpdBcXERB3eXrg7V_AFHQUWc3R9e3jaZfXwdk_Bg8nRdAes4LRKEojSwEDqFCElJpWFCKMW1lj6yuqDJt6JO9Sck6K17s2b9lt_JMgop8jzLBcg07SMAQzqQmRB8kOYyvP3Yf96DLmH_hvFnabG1VE_PRxUsP9y9jD7nKxJ1Wiur2bbzQTCtz5qb07fxxfvJsLmsm6vh3Ey4e3_U6_7iQ9L-GzsmTDONHAsTq8SoWAhnYyxLiKk3VArnC0ndJk0ECoUUGQO5ETpOS6aU4RAZwSwaaZxXwLx0WoO1X2-2ZUQ**eAEFwYEBACAEBMCV5FHG8dT-I3S3zyXkqnPEewWBxESsjs45zcBLU5EXlzo0Ldq2XE5U4X04FBGm; _lxsdk_s=18020cef685-62f-327-eec%7C%7C352; _lxsdk_cuid=170be73212cc8-0731fedd72247-39687407-13c680-170be73212cc8; _lxsdk=170be73212cc8-0731fedd72247-39687407-13c680-170be73212cc8; s_u_745896=wPzGrzS+8NIHAQMhaT8k6w==; al=etbrsabkzqwplazomicpeoybunodsbqz; u=7113786; uu=bf70caf0-b7fa-11ec-bdc2-1d9e2782e776; cid=1; s_m_id_3299326472=AwMAAAA5AgAAAAIAAAE9AAAALPVKSfqvDQPyb+RkNGaBXjnu3be7dnPmweuSYJAvu9s467ya2BSXoXF2+ZZeAAAAIyB6tbbO9Z0Rxc4NVeikjWfUkHFIJONN9h3mJpd+QTMhZAhA; csrftoken=Df9yzbAwHt1Pm4uxI2Gt95H0bkyRRsZs; sessionid=gjw22iae60b07374l9kud9tg4lxe12qx; ssoid=eAGFzjtLw1AYgGEOSCmdJJNjxjYQ_M4t5ztOpmnA0csguEjOJaP-AQebwVIQBDedFAIKgpdBcXERB3eXrg7V_AFHQUWc3R9e3jaZfXwdk_Bg8nRdAes4LRKEojSwEDqFCElJpWFCKMW1lj6yuqDJt6JO9Sck6K17s2b9lt_JMgop8jzLBcg07SMAQzqQmRB8kOYyvP3Yf96DLmH_hvFnabG1VE_PRxUsP9y9jD7nKxJ1Wiur2bbzQTCtz5qb07fxxfvJsLmsm6vh3Ey4e3_U6_7iQ9L-GzsmTDONHAsTq8SoWAhnYyxLiKk3VArnC0ndJk0ECoUUGQO5ETpOS6aU4RAZwSwaaZxXwLx0WoO1X2-2ZUQ**eAEFwYEBACAEBMCV5FHG8dT-I3S3zyXkqnPEewWBxESsjs45zcBLU5EXlzo0Ldq2XE5U4X04FBGm; _lxsdk_s=18020cef685-62f-327-eec%7C%7C438");
+            CloseableHttpResponse response = httpClient.execute(httpGet);
+            if (response.getStatusLine().getStatusCode() == 200) {
+                // 如果http状态码是200, 则取出响应体, 序列化为string
+                HttpEntity entity = response.getEntity();
+                String content = EntityUtils.toString(entity, "utf-8");
+                JSONObject jsonObject = JSON.parseObject(content);
+                JSONArray appkeys = jsonObject.getJSONArray("appkeys");
+                return appkeys.get(0).toString();
+            }
+        } catch (Exception e) {
+            log.error("请求ops获取appkeys异常", e);
+        }
+        return "";
+    }
+
     //
 
     /**
      * @param name 示例set-zf-tsp-uds-cbase01.mt:8011->set-zf-order-api-managerserver53.mt:14922
-     * @return api-managerserver
      */
-    public String getRemoteAppkey(String name) {
+    private String getRemoteAppkey(String name) {
+        String host = getRemoteHost(name);
+        String hostKey = getHostKey(name);
+        String appkey = appkeyByHostKey.get(hostKey);
+        if (appkey != null) {
+            return appkey;
+        }
+        appkey = getAppekeyFromOps(host);
+        if (StringUtils.isNotBlank(appkey)) {
+            appkeyByHostKey.put(hostKey, appkey);
+            return appkey;
+        }
+        return hostKey;
+    }
+
+    private String getHostKey(String name) {
         List<String> split = Splitter.on("->").splitToList(name);
         name = split.get(1);
         List<String> split1 = Splitter.on(".").splitToList(name);
@@ -261,4 +306,6 @@ public class LsofOneFormat {
         private String key;
         private int count;
     }
+
+
 }
