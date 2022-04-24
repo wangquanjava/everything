@@ -48,8 +48,8 @@ public class LsofOneFormat {
     public static void main(String[] args) {
         // 共有多少行、input多少行、output多少行
         LsofOneFormat lsofOneFormat = new LsofOneFormat();
-        List<LsofLine> data1 = lsofOneFormat.file2List("/Users/wangquan07/Downloads/cbaseAll2258.log");
-        List<LsofLine> data2 = lsofOneFormat.file2List("/Users/wangquan07/Downloads/cbaseAll2324.log");
+        List<LsofLine> data1 = lsofOneFormat.file2List("/Users/wangquan07/Downloads/cbaseAll1049.log");
+        List<LsofLine> data2 = lsofOneFormat.file2List("/Users/wangquan07/Downloads/cbaseAll1123.log");
         log.info("波动前连接:{}", lsofOneFormat.printSummary(data1));
         log.info("波动后连接:{}", lsofOneFormat.printSummary(data2));
 
