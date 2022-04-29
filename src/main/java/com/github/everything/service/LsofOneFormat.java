@@ -44,12 +44,13 @@ import java.util.stream.Collectors;
 public class LsofOneFormat {
     private List<Integer> serverPortList = Lists.newArrayList(8011);
     private Map<String, String> appkeyByHostKey = Maps.newHashMap();
+    private static List<String> alreadyDoneAppkey = Splitter.on(",").splitToList("com.sankuai.waimai.order.datamanager,com.sankuai.cube.cubeactivity,com.sankuai.bizintegration.core.server,com.sankuai.waimai.c.ant,com.sankuai.order.api.managerserver,com.sankuai.travel.osg.cube,com.sankuai.cube.cubetask,com.sankuai.marketingcategory.phf,com.sankuai.canyinrc.r.data,com.sankuai.waimai.c.cbaser,com.sankuai.waimai.d.searchwpp,com.sankuai.bizintegration.searchapi,takeaway-eventcommon-service,com.sankuai.bizintegration.waimai.i,com.sankuai.promotion.activity.dataconsistency,com.sankuai.travel.osg.cubemis,com.sankuai.waimai.ugc,com.sankuai.waimai.product,com.sankuai.waimai.c.ap,com.sankuai.waimai.d.search.dispatch");
 
     public static void main(String[] args) {
         // 共有多少行、input多少行、output多少行
         LsofOneFormat lsofOneFormat = new LsofOneFormat();
-        List<LsofLine> data1 = lsofOneFormat.file2List("/Users/wangquan07/Downloads/cbaseAll1049.log");
-        List<LsofLine> data2 = lsofOneFormat.file2List("/Users/wangquan07/Downloads/cbaseAll1123.log");
+        List<LsofLine> data1 = lsofOneFormat.file2List("/Users/wangquan07/Downloads/cbase04291149.log");
+        List<LsofLine> data2 = lsofOneFormat.file2List("/Users/wangquan07/Downloads/cbase04291412.log");
         log.info("波动前连接:{}", lsofOneFormat.printSummary(data1));
         log.info("波动后连接:{}", lsofOneFormat.printSummary(data2));
 
@@ -61,6 +62,9 @@ public class LsofOneFormat {
 
         List<LsofLineGroupBy> serverGroupByAppKey = lsofOneFormat.groupByAppKey(lsofOneFormat.getServerList(diffCreate));
         log.info("重新创建连接中server连接占比分析:\n{}", lsofOneFormat.printDiffSummaryByAppKey(serverGroupByAppKey, lsofOneFormat.getServerList(data2)));
+
+        serverGroupByAppKey = serverGroupByAppKey.stream().filter(a -> alreadyDoneAppkey.contains(a.getKey())).collect(Collectors.toList());
+        log.info("改造失败的server连接占比分析:\n{}", lsofOneFormat.printDiffSummaryByAppKey(serverGroupByAppKey, lsofOneFormat.getServerList(data2)));
 
         List<LsofLineGroupBy> clientGroupByAppKey = lsofOneFormat.groupByAppKey(lsofOneFormat.getClientList(diffCreate));
         log.info("重新创建连接中client连接占比分析:\n{}", lsofOneFormat.printDiffSummaryByAppKey(clientGroupByAppKey, lsofOneFormat.getClientList(data2)));
@@ -173,7 +177,7 @@ public class LsofOneFormat {
             URI uri = new URIBuilder(String.format("http://ops.vip.sankuai.com/api/v0.2/hosts/%s/appkeys", host)).build();
 
             HttpGet httpGet = new HttpGet(uri);
-            httpGet.setHeader("Cookie", "_lxsdk_cuid=170be73212cc8-0731fedd72247-39687407-13c680-170be73212cc8; _lxsdk=170be73212cc8-0731fedd72247-39687407-13c680-170be73212cc8; s_u_745896=wPzGrzS+8NIHAQMhaT8k6w==; al=etbrsabkzqwplazomicpeoybunodsbqz; u=7113786; uu=bf70caf0-b7fa-11ec-bdc2-1d9e2782e776; cid=1; s_m_id_3299326472=AwMAAAA5AgAAAAIAAAE9AAAALPVKSfqvDQPyb+RkNGaBXjnu3be7dnPmweuSYJAvu9s467ya2BSXoXF2+ZZeAAAAIyB6tbbO9Z0Rxc4NVeikjWfUkHFIJONN9h3mJpd+QTMhZAhA; csrftoken=Df9yzbAwHt1Pm4uxI2Gt95H0bkyRRsZs; sessionid=gjw22iae60b07374l9kud9tg4lxe12qx; ssoid=eAGFzjtLw1AYgGEOSCmdJJNjxjYQ_M4t5ztOpmnA0csguEjOJaP-AQebwVIQBDedFAIKgpdBcXERB3eXrg7V_AFHQUWc3R9e3jaZfXwdk_Bg8nRdAes4LRKEojSwEDqFCElJpWFCKMW1lj6yuqDJt6JO9Sck6K17s2b9lt_JMgop8jzLBcg07SMAQzqQmRB8kOYyvP3Yf96DLmH_hvFnabG1VE_PRxUsP9y9jD7nKxJ1Wiur2bbzQTCtz5qb07fxxfvJsLmsm6vh3Ey4e3_U6_7iQ9L-GzsmTDONHAsTq8SoWAhnYyxLiKk3VArnC0ndJk0ECoUUGQO5ETpOS6aU4RAZwSwaaZxXwLx0WoO1X2-2ZUQ**eAEFwYEBACAEBMCV5FHG8dT-I3S3zyXkqnPEewWBxESsjs45zcBLU5EXlzo0Ldq2XE5U4X04FBGm; _lxsdk_s=18020cef685-62f-327-eec%7C%7C352; _lxsdk_cuid=170be73212cc8-0731fedd72247-39687407-13c680-170be73212cc8; _lxsdk=170be73212cc8-0731fedd72247-39687407-13c680-170be73212cc8; s_u_745896=wPzGrzS+8NIHAQMhaT8k6w==; al=etbrsabkzqwplazomicpeoybunodsbqz; u=7113786; uu=bf70caf0-b7fa-11ec-bdc2-1d9e2782e776; cid=1; s_m_id_3299326472=AwMAAAA5AgAAAAIAAAE9AAAALPVKSfqvDQPyb+RkNGaBXjnu3be7dnPmweuSYJAvu9s467ya2BSXoXF2+ZZeAAAAIyB6tbbO9Z0Rxc4NVeikjWfUkHFIJONN9h3mJpd+QTMhZAhA; csrftoken=Df9yzbAwHt1Pm4uxI2Gt95H0bkyRRsZs; sessionid=gjw22iae60b07374l9kud9tg4lxe12qx; ssoid=eAGFzjtLw1AYgGEOSCmdJJNjxjYQ_M4t5ztOpmnA0csguEjOJaP-AQebwVIQBDedFAIKgpdBcXERB3eXrg7V_AFHQUWc3R9e3jaZfXwdk_Bg8nRdAes4LRKEojSwEDqFCElJpWFCKMW1lj6yuqDJt6JO9Sck6K17s2b9lt_JMgop8jzLBcg07SMAQzqQmRB8kOYyvP3Yf96DLmH_hvFnabG1VE_PRxUsP9y9jD7nKxJ1Wiur2bbzQTCtz5qb07fxxfvJsLmsm6vh3Ey4e3_U6_7iQ9L-GzsmTDONHAsTq8SoWAhnYyxLiKk3VArnC0ndJk0ECoUUGQO5ETpOS6aU4RAZwSwaaZxXwLx0WoO1X2-2ZUQ**eAEFwYEBACAEBMCV5FHG8dT-I3S3zyXkqnPEewWBxESsjs45zcBLU5EXlzo0Ldq2XE5U4X04FBGm; _lxsdk_s=18020cef685-62f-327-eec%7C%7C438");
+            httpGet.setHeader("Cookie", "s_u_745896=wPzGrzS+8NIHAQMhaT8k6w==; _lxsdk_cuid=170be73212cc8-0731fedd72247-39687407-13c680-170be73212cc8; _lxsdk=wangquan07; u=1412433641; _lx_utm=utm_source%3Dxm; _lxsdk_s=180734c895d-8a3-994-13%7C%7C340; s_m_id_3299326472=AwMAAAA5AgAAAAIAAAE9AAAALJycTh9pWpnzBKvQwwfHGAApZvfoMRdqW8qXvzqm2Onhz2FZyqVlvWGFCy0cAAAAI2460FmdmVP8x4h97MNFylPru3UhpHKbkX/UaYOs+wciOUFp; csrftoken=lbGuphLE47BuZqOufSXVoE1DvHxHpbgb; sessionid=yypkey8e1pcdu1xxrdndcnscky4kqz4h; ssoid=eAGFj7tKA0EUQBmQEFLJVpZbJguLd-e191rJmg2WPgrBRmZnZkv9AQuTJgS7dFGECAEjgmJnZSH5CEUtLNT9BisjYm1_OJxTZ4sPbwMWjp9fZ33gDUdSI5iygJVQaWMSheRKr2WClmQpI6mssbooQafZIwtaO77Ytn7fHypNgucSuMg7qq0y7BDmnJNQmRTQxvB-OH05hibj_4rxJ2m1tn7Zm532YaManT19LfdY1Khtbq0dOB8E75OL6vb8Y3D1Oe5W15Pqpru0EB7djVrNX3jI6n9hJ4x7Io4J17EmSGNZmDI2worYkMZEgyFAs5domaIUpASS3g2dsAmJ-auJQAqXzucUWm6MUo5QwjelSGW8**eAEFwQERADEIAzBLa-kPkAMH8y_hE2i2Hok94Z7Lz7u246L6mrw8Z0SyrFLBNj0QMgz76fw2chEO");
             CloseableHttpResponse response = httpClient.execute(httpGet);
             if (response.getStatusLine().getStatusCode() == 200) {
                 // 如果http状态码是200, 则取出响应体, 序列化为string

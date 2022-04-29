@@ -70,8 +70,6 @@ class EverythingApplicationTests {
             System.out.println(JSON.toJSONString(map, true));
             Thread.sleep(1000);
         }
-
-
     }
 
 
