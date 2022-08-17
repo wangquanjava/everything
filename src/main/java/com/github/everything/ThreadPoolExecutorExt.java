@@ -51,4 +51,23 @@ public class ThreadPoolExecutorExt {
 //        }
     }
 
+    public static void main(String[] args) {
+        ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(0, 1, 0, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(1));
+        threadPoolExecutor.submit(new Runnable() {
+            @Override
+            public void run() {
+                // 无界队列+0核心线程, 也可以执行该行
+                System.out.println("1");
+            }
+        });
+        threadPoolExecutor.submit(new Runnable() {
+            @Override
+            public void run() {
+                // 无界队列+0核心线程, 也可以执行该行
+                System.out.println("1");
+            }
+        });
+        System.out.println();
+    }
+
 }
